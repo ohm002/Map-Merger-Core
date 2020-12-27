@@ -5,14 +5,14 @@ import re
 import shutil
 
 class OsuMap:
-	def __init__ (self, general, editor, metadata, difficulty, events, timingpoints, colors, hitobjects):
+	def __init__ (self, general, editor, metadata, difficulty, events, timingpoints, hitobjects):
 		self.general = general
 		self.editor = editor
 		self.metadata = metadata
 		self.difficulty = difficulty
 		self.events = events
 		self.timingpoints = timingpoints
-		self.colors = colors
+		# self.colors = colors
 		self.hitobjects = hitobjects
 
 def ParseAllBeatmapData(osufile):
@@ -27,7 +27,7 @@ def ParseAllBeatmapData(osufile):
 		elif line == "[Editor]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataGeneral.append(osufile[i])
 			break
@@ -42,7 +42,7 @@ def ParseAllBeatmapData(osufile):
 		elif line == "[Metadata]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataEditor.append(osufile[i])
 			break
@@ -57,7 +57,7 @@ def ParseAllBeatmapData(osufile):
 		elif line == "[Difficulty]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataMetadata.append(osufile[i])
 			break	# Events
@@ -73,7 +73,7 @@ def ParseAllBeatmapData(osufile):
 		elif line == "[Events]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataDifficulty.append(osufile[i])
 			break	
@@ -88,7 +88,7 @@ def ParseAllBeatmapData(osufile):
 		elif line == "[TimingPoints]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataEvents.append(osufile[i])
 			break	
@@ -102,28 +102,30 @@ def ParseAllBeatmapData(osufile):
 		if line == "[TimingPoints]":
 			depth = linepos
 		elif line == "[Colours]":
+			continue
+		elif line == "[HitObjects]":
 			# print(f"{depth+1} until {linepos-2}")
 			searchdepthstart = depth+1
-			searchdepthend = linepos-2
+			searchdepthend = linepos
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataTimingPoints.append(osufile[i])
 			break
 
 	# Colours
-	depth = 0
-	linepos = 0
-	DataColours = []
-	for line in osufile:
-		linepos += 1
-		if line == "[Colours]":
-			depth = linepos
-		elif line == "[HitObjects]":
-			# print(f"{depth+1} until {linepos-2}")
-			searchdepthstart = depth+1
-			searchdepthend = linepos-2
-			for i in range(searchdepthstart-1, searchdepthend-1):
-				DataColours.append(osufile[i])
-			break
+	# depth = 0
+	# linepos = 0
+	# DataColours = []
+	# for line in osufile:
+	# 	linepos += 1
+	# 	if line == "[Colours]":
+	# 		depth = linepos
+	# 	elif line == "[HitObjects]":
+	# 		# print(f"{depth+1} until {linepos-2}")
+	# 		searchdepthstart = depth+1
+	# 		searchdepthend = linepos
+	# 		for i in range(searchdepthstart-1, searchdepthend-1):
+	# 			DataColours.append(osufile[i])
+	# 		break
 	# HitObjects
 	depth = 0
 	linepos = 0
@@ -133,11 +135,11 @@ def ParseAllBeatmapData(osufile):
 		if line == "[HitObjects]":
 			depth = linepos
 			searchdepthstart = depth+1
-			searchdepthend = len(osufile)
+			searchdepthend = len(osufile)+1
 			for i in range(searchdepthstart-1, searchdepthend-1):
 				DataHitObjects.append(osufile[i])
 			break
-	osudata = OsuMap(DataGeneral, DataEditor, DataMetadata, DataDifficulty, DataEvents, DataTimingPoints, DataColours, DataHitObjects) 
+	osudata = OsuMap(DataGeneral, DataEditor, DataMetadata, DataDifficulty, DataEvents, DataTimingPoints, DataHitObjects) 
 	return osudata
 
 def MergeAll(param):
@@ -145,8 +147,8 @@ def MergeAll(param):
 	for osu in re.split("\n", param):
 		if i == 0:
 			MergeTwo(osu, re.split("\n", param)[1])
-		elif i > 2:
-			metadata = ParseAllBeatmapData(osu)
+		elif i >= 2:
+			metadata = ParseAllBeatmapData(open(osu, encoding="utf-8").read().splitlines())
 			artist = re.split(":",metadata.metadata[2])[1]
 			title = re.split(":",metadata.metadata[0])[1]
 			mapper = re.split(":",metadata.metadata[4])[1]
@@ -164,6 +166,7 @@ def MergeTwo(osufile1, osufile2):
 	open(f"{artist} - {title} ({mapper}) [Result].osu", 'a').close()
 	resultfile = open(f"{artist} - {title} ({mapper}) [Result].osu", "w", encoding="utf-8")
 	towrite = ""
+	towrite += "osu file format v14\n" + "\n"
 	towrite += "[General]\n"
 	for line in osufile1.general:
 		towrite += line + "\n"
@@ -191,9 +194,9 @@ def MergeTwo(osufile1, osufile2):
 	notduplicatedline = list(dict.fromkeys(alltimingpoints))
 	for line in notduplicatedline:
 		towrite += line + "\n"
-	towrite += "\n[Colours]\n"
-	for line in osufile1.colors:
-		towrite += line + "\n"
+	# towrite += "\n[Colours]\n"
+	# for line in osufile1.colors:
+	# 	towrite += line + "\n"
 	towrite += "\n[HitObjects]\n"
 	for line in osufile1.hitobjects:
 		towrite += line + "\n"
